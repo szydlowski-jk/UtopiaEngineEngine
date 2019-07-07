@@ -1,41 +1,57 @@
 'use strict'
-// const ACTIONS = [
-//     "move",
-//     "search",
-//     "rest",
-//     "activate",
-//     "connect",
-//     "final_activate",
-//     "roll2d",
-//     "use_tool",
-//     "use_construct"
-// ]
 
 
+const ENCOUNTER_TABLE = [ [
+        {atk:1, hit:5},
+        {atk:1, hit:6},
+        {atk:2, hit:6},
+        {atk:3, hit:6},
+        {atk:4, hit:6},
+    ], [
+        {atk:2, hit:5},
+        {atk:1, hit:6},
+        {atk:1, hit:6},
+        {atk:3, hit:5},
+        {atk:4, hit:6, s:true},
+    ], [
+        {atk:1, hit:5},
+        {atk:2, hit:6},
+        {atk:2, hit:6},
+        {atk:3, hit:6},
+        {atk:4, hit:6},
+    ], [
+        {atk:1, hit:5},
+        {atk:1, hit:6},
+        {atk:2, hit:6, s:true},
+        {atk:3, hit:6},
+        {atk:4, hit:6},
+    ], [
+        {atk:1, hit:5},
+        {atk:1, hit:6, s:true},
+        {atk:2, hit:6, s:true},
+        {atk:3, hit:6},
+        {atk:4, hit:6, s:true},
+    ], [
+        {atk:1, hit:5},
+        {atk:2, hit:5},
+        {atk:3, hit:5},
+        {atk:3, hit:6, s:true},
+        {atk:4, hit:6, s:true},
+    ]
+]
 
-function newMove(location) {
-    if(location) {
-        return {action:"move", location:location}
+class Statistics {
+    constructor () {
+        this.dices = []
+        this.moves = 0
+        this.searches = 0
+        this.encounters1 = 0
+        this.encounters2 = 0
+        this.encounters3 = 0
+        this.encounters4 = 0
+        this.encounters5 = 0
     }
-    return false;
 }
-
-function newSearch() {
-    return {action:"search_begin"}
-}
-
-function newSearchInput(value, position) {
-    if(value && position) {
-        return {action:"search_input", value:value, position:position}
-    }
-    return false
-}
-
-function newRest() {
-    return {action:"rest"}
-}
-
-
 
 class State {
     constructor () {
@@ -51,7 +67,9 @@ class State {
         this.dices = [0, 0]
         this.searchgrid = [0, 0, 0, 0, 0, 0]
         this.searchResult = false
-        this.searches = 0
+        this.searchesInLocation = 0
+        this.encounterLvl = 0
+        this.encounterRound = 0
     }
 }
 
@@ -82,11 +100,13 @@ class UtopiaEngineEngine {
     initEncounter() {
         let absResult = this.state.searchResult
         if (absResult < 0) {
-//            absResult = (absResult + 99) * -1
             absResult = (absResult * -1) + 99
         }
-        let level = Math.floor(absResult / 100)
-        console.log(`Encounter lvl ${level}`)
+
+        this.state.state = "combat"
+        this.state.encounterLvl = Math.floor(absResult / 100)
+
+        console.log(`Encounter lvl ${this.state.encounterLvl}`)
     }
 
     // Action methods //
@@ -94,7 +114,7 @@ class UtopiaEngineEngine {
         if(location != this.state.location && location >= 0 && location <= 6) {
             if(this.state.state == "idle") {
                 this.state.location = location
-                this.state.searches = 0
+                this.state.searchesInLocation = 0
                 console.log(`You moved to ${this.state.location}`)
                 return true
             }
@@ -120,6 +140,7 @@ class UtopiaEngineEngine {
             if(this.state.state == "idle") {
                 this.state.state = "search_input"
                 this.state.searchgrid = [0, 0, 0, 0, 0, 0]
+                this.state.searchesInLocation++
 
                 this.diceRoll()
 
@@ -223,8 +244,53 @@ class UtopiaEngineEngine {
 
     }
 
-    doCombatRoll () {
+    doDamage () {
 
+    }
+
+    doCombatUseMoonlace () {
+        if (this.state.treasures[2]) {
+            if (this.state.state == "combat" && this.state.encounterRound == 0) {
+                console.log("Combat evaded with Shimmering Moonlace")
+                this.state.state = "idle"
+            }
+        }
+    }
+
+    doCombatRoll () {
+        if (this.state.state == "combat") {
+            this.diceRoll()
+            const enemy = ENCOUNTER_TABLE[this.state.location-1][this.state.encounterLvl-1]
+
+            let modatk = enemy.atk
+            if (this.state.treasures[0]) {
+                if (modatk > 1) {
+                    modatk--
+                }
+            }
+
+            let modhit = enemy.hit
+            if (this.state.treasures[4]) {
+                modhit--
+            }
+
+            if (this.state.dices[0] <= modatk) {
+                this.doDamage()
+            }
+            if (this.state.dices[1] <= modatk) {
+                this.doDamage()
+            }
+
+            if (this.state.dices[0] >= modhit || this.state.dices[1] >= modhit) {
+
+            }
+        }
+    }
+
+    doCombatWon () {
+        if (this.state.state ==  "combat") {
+
+        }
     }
 
     doAction (action) {
