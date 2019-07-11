@@ -99,6 +99,7 @@ class State {
         this.location = 0
         this.hitpoints = 0
         this.day = 0
+        this.doomsdaydelay = 0
         this.godshand = 0
         this.stores = [0, 0, 0, 0, 0, 0]
         this.toolbelt = [true, true, true]
@@ -187,10 +188,30 @@ class UtopiaEngineEngine {
         if (this.state.stores[index] < 4) {
             this.state.stores[index]++
         }
+        console.log('You found component')
     }
 
     addConstruct (index, activated) {
+        if (this.state.constructs[index] == false) {
+            if (activated) {
+                this.state.constructs[index] = 'activated'
+                console.log('You found activated construct')
+            } else {
+                this.state.constructs[index] = true
+                console.log('You found construct')
+            }
+        } else {
+            this.addComponent(index)
+            this.addComponent(index)
+            console.log('You found two components')
+        }
+    }
 
+    addGodHandEnergy (amount) {
+        this.state.godshand += amount
+        if (this.state.godshand > 6) {
+            this.state.godshand = 6
+        }
     }
 
     // Action methods //
@@ -288,6 +309,18 @@ class UtopiaEngineEngine {
         return false
     }
 
+    doUseGodsHand () {
+        if (this.state.godshand >= 3 && this.state.doomsdaydelay < 8) {
+            this.state.godshand -= 3
+            this.state.doomsdaydelay++
+
+            console.log('You delayed doomsday by one day')
+            return true
+        }
+
+        return false
+    }
+
     doUseDowsingRod (value) {
         if (this.state.state == "search_result") {
             if (this.state.toolbelt[0] == true) {
@@ -332,24 +365,30 @@ class UtopiaEngineEngine {
     }
 
     doSearchFinish () {
-        if ( this.state.searchResult >= 100 ) {
-            console.log('Encounter')
-            this.initEncounter()
-        } else if ( this.state.searchResult >= 11 ) {
-            this.addComponent(COMPONENT_LOCATION[this.state.location-1])
-            console.log('component')
-        } else if ( this.state.searchResult >= 1 ) {
-//            this.state.constructs[CONSTRUCT_LOCATION[this.state.location-1]] = true
-            console.log('construct')
-        } else if ( this.state.searchResult == 0 ) {
-            console.log('activated construct')
-        } else if ( this.state.searchResult >= -555) {
-            console.log('encounter')
-            this.initEncounter()
-        }
+        if ( this.state.searchResult != false) {
+            if ( this.state.searchResult >= 100 ) {
+                console.log('Encounter')
+                this.initEncounter()
+            } else if ( this.state.searchResult >= 11 ) {
+                this.addComponent(COMPONENT_LOCATION[this.state.location-1])
+                console.log('component')
+            } else if ( this.state.searchResult >= 1 ) {
+                this.addConstruct(CONSTRUCT_LOCATION[this.state.location-1], false)
+                console.log('construct')
+            } else if ( this.state.searchResult == 0 ) {
+                this.addConstruct(CONSTRUCT_LOCATION[this.state.location-1], true)
+                console.log('activated construct')
+            } else if ( this.state.searchResult >= -555) {
+                console.log('encounter')
+                this.initEncounter()
+            }
 
-        this.state.searchgrid
-        this.state.state = "idle"
+            this.state.searchResult = false
+            this.state.searchgrid = [0, 0, 0, 0, 0, 0]
+            this.state.state = "idle"
+            return true
+        }
+        return false
     }
 
     doCombatUseMoonlace () {
