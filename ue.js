@@ -18,6 +18,12 @@ uee.doUseDowsingRod(100)
 uee.doUseDowsingRod(100)
 uee.doSearchFinish()
 
+if (uee.state.state == "combat") {
+    uee.doCombatRoll()
+    uee.doUseParalysisWand()
+    uee.doCombatRollResult()
+}
+
 uee.doSearchBegin()
 
 uee.doSearchInput(uee.state.dices[0], 0)
@@ -31,3 +37,6 @@ uee.doSearchInput(uee.state.dices[1], 5)
 
 uee.doSearchResult()
 uee.doSearchFinish()
+
+uee.doSearchBegin()
+

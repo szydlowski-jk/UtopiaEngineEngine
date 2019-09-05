@@ -111,6 +111,7 @@ class State {
         this.searchesInLocation = 0
         this.encounterLvl = 0
         this.encounterRound = 0
+        this.encounterParalysisWandInEffect = false
         this.events = [0, 0, 0, 0]
     }
 }
@@ -269,6 +270,8 @@ class UtopiaEngineEngine {
                ) {
 
                 this.state.searchgrid[position] = value
+                console.log(`While searching you put ${value} at position ${position}`)
+
                 if(this.state.dices[0] == value) {
                     this.state.dices[0] = 0
                 } else {
@@ -279,7 +282,6 @@ class UtopiaEngineEngine {
                     this.diceRoll()
                 }
 
-                console.log(`While searching you put ${value} at position ${position}`)
                 return true
             }
             console.log('Invalid state, searchgird value or dice')
@@ -348,6 +350,21 @@ class UtopiaEngineEngine {
         return false
     }
 
+    doUseParalysisWand () {
+        if (this.state.state == "combat") {
+            if (this.state.toolbelt[1]) {
+                this.state.encounterParalysisWandInEffect = true
+                this.state.toolbelt[1] = false
+                console.log(`Paralysis Wand in effect for the rest of encounter`)
+                return true
+            }
+            console.log(`Paralysis Wand already used`)
+            return false
+        }
+        console.log(`Paralysis Wand cannot be used outside of combat`)
+        return false
+    }
+
     doUseGoodFortune (value) {
         if (this.state.events[2] == this.state.location) {
             if (this.state.state == "search_result") {
@@ -371,12 +388,15 @@ class UtopiaEngineEngine {
                 this.initEncounter()
             } else if ( this.state.searchResult >= 11 ) {
                 this.addComponent(COMPONENT_LOCATION[this.state.location-1])
+                this.state.state = "idle"
                 console.log('component')
             } else if ( this.state.searchResult >= 1 ) {
                 this.addConstruct(CONSTRUCT_LOCATION[this.state.location-1], false)
+                this.state.state = "idle"
                 console.log('construct')
             } else if ( this.state.searchResult == 0 ) {
                 this.addConstruct(CONSTRUCT_LOCATION[this.state.location-1], true)
+                this.state.state = "idle"
                 console.log('activated construct')
             } else if ( this.state.searchResult >= -555) {
                 console.log('encounter')
@@ -385,7 +405,6 @@ class UtopiaEngineEngine {
 
             this.state.searchResult = false
             this.state.searchgrid = [0, 0, 0, 0, 0, 0]
-            this.state.state = "idle"
             return true
         }
         return false
@@ -403,6 +422,11 @@ class UtopiaEngineEngine {
     doCombatRoll () {
         if (this.state.state == "combat") {
             this.diceRoll()
+        }
+    }
+
+    doCombatRollResult () {
+        if (this.state.state == "combat") {
             const enemy = ENCOUNTER_TABLE[this.state.location-1][this.state.encounterLvl-1]
 
             let modatk = enemy.atk
@@ -417,17 +441,30 @@ class UtopiaEngineEngine {
                 modhit--
             }
 
+            if (this.state.encounterParalysisWandInEffect) {
+                this.state.dices[0] += 2
+                this.state.dices[1] += 2
+            }
+
             if (this.state.dices[0] <= modatk) {
                 this.doDamage()
+                console.log("Took Combat damage")
             }
             if (this.state.dices[1] <= modatk) {
                 this.doDamage()
+                console.log("Took Combat damage")
             }
 
             if (this.state.dices[0] >= modhit || this.state.dices[1] >= modhit) {
-
+                console.log("Enemy killed")
+                this.state.state = "combat_finished"
             }
+
+            this.state.dices[0] = 0
+            this.state.dices[1] = 0
+            return true
         }
+        return false
     }
 
     finishEncounter () {
